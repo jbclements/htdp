@@ -543,10 +543,10 @@
      (unless disable-error-handling?
        (error-display-handler err-display-handler)))
    (lambda (expanded continue-thunk) ; iter
-     (r:reset-special-values)
      (if (eof-object? expanded)
          (receive-result (finished-stepping))
-         (begin (step-through-expression expanded)
+         (begin (r:reset-special-values)
+                (step-through-expression expanded)
                 (continue-thunk))))))
 
 

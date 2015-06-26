@@ -16,7 +16,7 @@
          (for-syntax racket/base)
          racket/private/promise)
 
-#;(define-logger stepper)
+(define-logger stepper)
 
 (provide/contract 
  [reconstruct-completed (syntax? 
@@ -335,16 +335,22 @@
                (varref-skip-step? #`id-stx)]
               [(#%plain-app . terms)
                ; don't halt for proper applications of constructors
-               (let ([fun-val (lookup-binding mark-list (get-arg-var 0))])
+               #f
+               #;(let ([fun-val (lookup-binding mark-list (get-arg-var 0))])
                  (and (procedure? fun-val)
                       (procedure-arity-includes? 
                        fun-val
                        (length (cdr (syntax->list (syntax terms)))))
                       (or (and (render-settings-constructor-style-printing? render-settings)
-                               (if (render-settings-abbreviate-cons-as-list? render-settings)
-                                   (eq? fun-val special-list-value)
-                                   (and (eq? fun-val special-cons-value)
-                                        (second-arg-is-list? mark-list))))
+                               (eq? fun-val list)
+                               ;; whoa! didn't expect this to work... goodness gracious.
+                               #;(if (render-settings-abbreviate-cons-as-list? render-settings)
+                                     (cond [(eq? fun-val special-list-value)
+                                            (log-stepper-debug "yes, this condition was true")
+                                            #t]
+                                           [else #f])
+                                     (and (eq? fun-val cons #;special-cons-value)
+                                          (second-arg-is-list? mark-list))))
                           ;(model-settings:special-function? 'vector fun-val)
                           (and (eq? fun-val void)
                                (eq? (cdr (syntax->list (syntax terms))) null))
@@ -354,8 +360,12 @@
 ;; find-special-value finds the value associated with the given name.  Applications of 
 ;; functions like 'list' should not be shown as steps, because the before and after steps will 
 ;; be the same.  it might be easier simply to discover and discard these at display time.
-(define (find-special-value name valid-args)
-  (let* ([expanded-application (expand (cons name valid-args))]
+(define (find-special-value #;module-lang-path name valid-args)
+  (let* (#;[expanded-application (expand `(module dontcare ,module-lang-path
+                                          (,name . ,valid-args)))]
+         [expanded-application (expand (cons name valid-args))]
+         ;; I'm baffled by this stepper-skipto annotation... after all, we're just
+         ;; evaluating the function, right?
          [stepper-safe-expanded (skipto/auto expanded-application 'discard (lambda (x) x))]
          [just-the-fn 
           (kernel:kernel-syntax-case 
@@ -377,9 +387,15 @@
 (define special-list-value #f)
 (define special-cons-value #f)
 
-(define (reset-special-values)
-  (set! special-list-value (find-special-value 'list '(3)))
-  (set! special-cons-value (find-special-value 'cons '(3 empty)))
+(define (reset-special-values #;module-lang-path)
+  (set! special-list-value (find-special-value #;module-lang-path 'list '(3)))
+  (log-stepper-debug "special list value: ~v" special-list-value)
+  (log-stepper-debug "is special value equal? to built-in one: ~v"
+                     (equal? special-list-value list))
+  (set! special-cons-value (find-special-value #;module-lang-path 'cons '(3 empty)))
+  (log-stepper-debug "special cons value: ~v" special-cons-value)
+  (log-stepper-debug "is special value equal? to built-in one: ~v"
+                     (equal? special-cons-value cons))
   (set! unknown-promises-table (make-weak-hash))
   (set! next-unknown-promise 0))
 
