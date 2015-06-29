@@ -301,7 +301,9 @@
 
 ;; skip-redex-step : mark-list? render-settings? -> boolean?
 (define (skip-redex-step? mark-list render-settings)
-  
+
+  ;; this could probably be dumped now that we're ignoring steps where
+  ;; before & after are the same (JBC, 2015-06-24)
   (define (varref-skip-step? varref)
     (with-handlers ([exn:fail:contract:variable? (lambda (dc-exn) #f)])
       (let ([val (lookup-binding mark-list varref)])
@@ -333,28 +335,7 @@
                   (varref-skip-step? expr)])]
               [(#%top . id-stx)
                (varref-skip-step? #`id-stx)]
-              [(#%plain-app . terms)
-               ; don't halt for proper applications of constructors
-               #f
-               #;(let ([fun-val (lookup-binding mark-list (get-arg-var 0))])
-                 (and (procedure? fun-val)
-                      (procedure-arity-includes? 
-                       fun-val
-                       (length (cdr (syntax->list (syntax terms)))))
-                      (or (and (render-settings-constructor-style-printing? render-settings)
-                               (eq? fun-val list)
-                               ;; whoa! didn't expect this to work... goodness gracious.
-                               #;(if (render-settings-abbreviate-cons-as-list? render-settings)
-                                     (cond [(eq? fun-val special-list-value)
-                                            (log-stepper-debug "yes, this condition was true")
-                                            #t]
-                                           [else #f])
-                                     (and (eq? fun-val cons #;special-cons-value)
-                                          (second-arg-is-list? mark-list))))
-                          ;(model-settings:special-function? 'vector fun-val)
-                          (and (eq? fun-val void)
-                               (eq? (cdr (syntax->list (syntax terms))) null))
-                          (struct-constructor-procedure? fun-val))))]
+              [(#%plain-app . terms) #f]
               [else #f])))))
 
 ;; find-special-value finds the value associated with the given name.  Applications of 
@@ -382,20 +363,25 @@
            [else (error 'find-special-name "couldn't find expanded name for ~a" name)])])
     (eval just-the-fn)))
 
+;; possibly no longer necessary
+
 ;; these are delayed so that they use the userspace expander.  I'm sure
 ;; there's a more robust & elegant way to do this.
-(define special-list-value #f)
-(define special-cons-value #f)
+
+;; possibly no longer necessary
+#;((define special-list-value #f)
+(define special-cons-value #f))
 
 (define (reset-special-values #;module-lang-path)
-  (set! special-list-value (find-special-value #;module-lang-path 'list '(3)))
+  ;; possibly no longer necessary
+  #;((set! special-list-value (find-special-value #;module-lang-path 'list '(3)))
   (log-stepper-debug "special list value: ~v" special-list-value)
   (log-stepper-debug "is special value equal? to built-in one: ~v"
                      (equal? special-list-value list))
   (set! special-cons-value (find-special-value #;module-lang-path 'cons '(3 empty)))
   (log-stepper-debug "special cons value: ~v" special-cons-value)
   (log-stepper-debug "is special value equal? to built-in one: ~v"
-                     (equal? special-cons-value cons))
+                     (equal? special-cons-value cons)))
   (set! unknown-promises-table (make-weak-hash))
   (set! next-unknown-promise 0))
 
