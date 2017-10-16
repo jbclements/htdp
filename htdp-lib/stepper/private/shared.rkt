@@ -116,7 +116,7 @@
                               (#%variable-reference)))
 
 (define (rebuild-stx new old)
-  (datum->syntax old new old old))
+  (datum->syntax (syntax-disarm old saved-code-inspector) new old old))
 
 (define break-kind?
   (symbols 'normal-break 'normal-break/values 'result-exp-break
