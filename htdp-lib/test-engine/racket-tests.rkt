@@ -180,18 +180,39 @@
   (syntax-case stx ()
     [(check-random e1 e2)
      (let ([test
+            ;; NB: if you change either of these syntax terms, you'll need to repair
+            ;; the stepper-skipto path used by the stepper to find the enclosed
+            ;; expression. It would probably be nicer just to compute this skipto
+            ;; path at runtime (slower, but probably not noticeable)
+            (with-syntax ([e1p (stepper-syntax-property #'e1 'finder #t)])
             (stepper-syntax-property
              #`(lambda (rng k)
-                 (parameterize ((current-pseudo-random-generator rng)) (random-seed k)
-                   e1))
-             'finder #t)]
+                 (parameterize ((current-pseudo-random-generator rng))
+                   (random-seed k)
+                   e1p))
+             ;'finder #t
+             'stepper-skipto stepper-check-random-skipto
+             ))]
            [actuals
             (list
-             #`(lambda (rng k)
-                 (parameterize ((current-pseudo-random-generator rng)) (random-seed k)
-                   e2)))])
+             (stepper-syntax-property
+              #`(lambda (rng k)
+                  (parameterize ((current-pseudo-random-generator rng)) (random-seed k)
+                    e2))
+              'stepper-skipto stepper-check-random-skipto
+              ;'finder #t
+              ))])
        (check-expect-maker stx #'check-random-values test actuals 'comes-from-check-expect))]
     [_ (raise-syntax-error 'check-random (argcount-error-message/stx 2 stx) stx)]))
+
+;; the skipto path that the stepper uses to locate the term to be annotated, for a check-random:
+(define-for-syntax stepper-check-random-skipto
+  '(syntax-e cdr cdr syntax-e car syntax-e cdr cdr cdr
+           car syntax-e cdr cdr
+           ;syntax-e
+           cdr car))
+
+
 
 (define-syntax (check-satisfied stx)
   (syntax-case stx ()

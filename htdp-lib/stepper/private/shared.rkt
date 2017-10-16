@@ -171,7 +171,7 @@
 
 ;; like syntax-e,  but provide a useful error message if given a non-syntax-object
 (define (noisy-syntax-e arg)
-  (cond [(syntax? arg) (syntax-e arg)]
+  (cond [(syntax? arg) (syntax-e (syntax-disarm arg saved-code-inspector))]
         [else (raise-argument-error 'noisy-syntax-e "syntax object in syntax traversal" 0 arg)]))
 
 ;; map a symbol in '(car cdr syntax-e) to the appropriate projector

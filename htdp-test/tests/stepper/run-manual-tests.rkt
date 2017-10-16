@@ -21,7 +21,8 @@
                  #;[display-only-errors #t]
                  #;[show-all-steps #t]
                  #;[ignore-non-lang-tests? #t])
-    (run-test 'check-random)
+    (run-tests '(check-expect check-random))
+    
     #;(run-all-tests)
     
     
