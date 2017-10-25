@@ -1258,7 +1258,7 @@
        stx]
       [else
        (define disarmed-stx (syntax-disarm stx saved-code-inspector))
-       (printf "disarming syntax: ~a\n\n" (syntax->datum stx))
+       ;(printf "disarming syntax: ~a\n\n" (syntax->datum stx))
        (define rewritten
          (kernel:kernel-syntax-case 
           disarmed-stx
