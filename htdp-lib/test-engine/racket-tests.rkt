@@ -180,9 +180,11 @@
   (syntax-case stx ()
     [(check-random e1 e2)
      (let ([test
-            #`(lambda (rng k)
-                (parameterize ((current-pseudo-random-generator rng)) (random-seed k)
-                  e1))]
+            (stepper-syntax-property
+             #`(lambda (rng k)
+                 (parameterize ((current-pseudo-random-generator rng)) (random-seed k)
+                   e1))
+             'finder #t)]
            [actuals
             (list
              #`(lambda (rng k)
