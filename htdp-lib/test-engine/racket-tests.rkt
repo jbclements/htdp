@@ -67,6 +67,10 @@
 
 ;; check-expect-maker : syntax? syntax? (listof syntax?) symbol? -> syntax?
 ;; the common part of all three test forms
+;; accepts the original syntax (for use in syntax locations),
+;; the syntax (identifier) for the function that will perform the check at runtime,
+;; the syntax of the test expression, a ... list of syntaxes? for the expected value(s?),
+;; and a symbol to act as a hint for the stepper
 ;; examples
 #;
 (_ stx #'check-values-expected #`test (list #`actual) 'comes-from-check-expect)
