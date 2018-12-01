@@ -82,7 +82,10 @@
 ;; when a breakpoint occurs, and a boolean indicating whether
 ;; lambdas are to be displayed as lambdas, return an annotated expression.
 (define (annotate main-exp break show-lambdas-as-lambdas?)
-  
+
+  ;; NB: I would love to spend 3 hours refactoring to move all
+  ;; of these inner functions out....I'm consciously restraining
+  ;; myself right now.
   (define binding-indexer
     (let ([binding-index 0])
       (lambda ()
@@ -681,7 +684,13 @@
                  (stepper-syntax-property exp 'stepper-skipto/discard))
              (dont-annotate)]
             [(to-be-skipped? exp)
-             (vector (wcm-wrap "supposed to be skipped" exp) null)]
+             (printf "to be skipped:\n~v\n"
+                     (syntax->datum exp))
+             (vector
+              ;; is this wcm-wrap really necessary?
+              #;exp
+              (wcm-wrap "supposed to be skipped" exp)
+              null)]
             
             [else
              (let ([exp (syntax-disarm exp saved-code-inspector)])
@@ -1162,6 +1171,8 @@
   
   
   ; body of local
+  (printf "top-level expression to annotate:\n~v\n"
+          (syntax->datum main-exp))
   (annotate/top-level main-exp))
 
 ;

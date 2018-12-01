@@ -33,7 +33,8 @@
                        #'fo:make-first-order)
                  (lambda (stx)
                    (with-syntax ([tagged-impl (stepper-syntax-property
-                                               (stepper-syntax-property (quote-syntax impl) 'stepper-skip-completely #t)
+                                               (quote-syntax impl)
+                                               #;(stepper-syntax-property (quote-syntax impl) 'stepper-skip-completely #t)
                                                'stepper-prim-name
                                                (quote-syntax name))])
                      (syntax-case stx ()
@@ -103,7 +104,8 @@
                      (fo:make-first-order
                       (lambda (s)
                         (with-syntax ([tagged-impl (stepper-syntax-property
-                                                    (stepper-syntax-property (quote-syntax impl) 'stepper-skip-completely #t)
+                                                    (quote-syntax impl)
+                                                    #;(stepper-syntax-property (quote-syntax impl) 'stepper-skip-completely #t)
                                                     'stepper-prim-name
                                                     (quote-syntax name))])
                           (syntax-case s ()

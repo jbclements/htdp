@@ -1,5 +1,7 @@
 #lang racket
 
+;; this file contains the test cases run by the stepper's automatic checker
+
 (require "test-abbrev.rkt"
          (prefix-in m: "language-level-model.rkt")
          stepper/private/model-settings)
@@ -1214,6 +1216,16 @@
   ;  ;;;;;;;;;;;;;
   ;
 
+
+  (t1 'big-bang-expansion-bug
+      m:beginner
+  "(require 2htdp/image)
+(require 2htdp/universe)
+(define (f2 w) (text \"hi\" 30 \"red\"))
+(big-bang \"dummy\" [to-draw f2])
+"
+  '((finished-stepping)))
+  
   ; as you can see, many teachpack tests work only in gracket:
   ;; (require mred)
 
