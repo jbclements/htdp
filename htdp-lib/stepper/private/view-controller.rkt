@@ -7,9 +7,6 @@
 ;; this module lies outside of the "testing boundary"
 ;; of through-tests; it is not tested automatically at all.
 
-;; this version of the view-controller just collects the steps up front rather
-;; than blocking until the user presses the "next" button.
-
 (require racket/class
          racket/match
          racket/list
@@ -27,6 +24,8 @@
          "view-controller-typed.rkt"
          images/compile-time
          images/gui
+         mrlib/switchable-button
+         framework
          (for-syntax racket/base images/icons/control images/icons/style images/logos))
 
 
@@ -101,9 +100,6 @@
   ;; wait for steps to show up on the channel.  
   ;; When they do, add them to the list.
   (define (start-listener-thread stepper-frame-eventspace)
-    ;; as of 2012-06-20, I no longer believe there's any
-    ;; need for this thread, as the queue-callback handles
-    ;; the needed separation.
     (thread
      (lambda ()
        (let loop ()
@@ -214,9 +210,9 @@
        (when (>= num-steps-available 0)
          (update-view/existing step))]))
   
-  ;; prior-of-specified-kind: if the desired step is already in the list, display
+  ;; previous-of-specified-kind: if the desired step is already in the list, display
   ;; it; otherwise, put up a dialog and jump to the first step.
-  (define (prior-of-specified-kind right-kind? msg)
+  (define (previous-of-specified-kind right-kind? msg)
     (match (find-earlier-step right-kind? view)
       [(? number? found-step)
        (update-view/existing found-step)]
@@ -235,12 +231,8 @@
   
   ;; previous : the action of the 'previous' button
   (define (previous)
-    (prior-of-specified-kind (lambda (x) #t)
+    (previous-of-specified-kind (lambda (x) #t)
                              (string-constant stepper-no-earlier-step)))
-  
-  ;; respond to a click on the "Jump To..." choice
-  (define (jump-to control event)
-    ((second (list-ref pulldown-choices (send control get-selection)))))
   
   ;; jump-to-beginning : the action of the choice menu entry
   (define (jump-to-beginning)
@@ -264,13 +256,12 @@
     (next-of-specified-kind application-step?
                             (string-constant stepper-no-later-application-step)))
   
-  ;; jump-to-prior-application : the action of the "jump to prior application"
+  ;; jump-to-previous-application : the action of the "jump to previous application"
   ;; choice box option
-  (define (jump-to-prior-application)
-    (prior-of-specified-kind application-step?
+  (define (jump-to-previous-application)
+    (previous-of-specified-kind application-step?
                              (string-constant 
                               stepper-no-earlier-application-step)))
-  
   
   ;; GUI ELEMENTS:
   (define s-frame
@@ -283,65 +274,63 @@
          [stretchable-height #f]))
   
   (define button-panel
-    (new horizontal-panel% [parent top-panel] [alignment '(center top)]
+    (new panel:horizontal-discrete-sizes% [parent top-panel] [alignment '(center top)]
          ;[style '(border)]  ; for layout testing only
          [stretchable-width #t]
          [stretchable-height #f]))
-  
-  (define logo-canvas
-    (new (class bitmap-canvas%
-           (super-new [parent top-panel] [bitmap (compiled-bitmap (stepper-logo #:height 32))])
-           (define/override (on-event evt)
-             (when (eq? (send evt get-event-type) 'left-up)
-               (show-about-dialog s-frame))))))
-  
-  (define prev-img (compiled-bitmap (step-back-icon #:color run-icon-color
-                                                    #:height (toolbar-icon-height))))
-  (define previous-button (new button%
-                               [label (list prev-img (string-constant stepper-previous) 'left)]
-                               [parent button-panel]
-                               [callback (λ (_1 _2) (previous))]
-                               [enabled #f]))
-  
-  (define next-img (compiled-bitmap (step-icon #:color run-icon-color
-                                               #:height (toolbar-icon-height))))
-  (define next-button (new button%
-                           [label (list next-img (string-constant stepper-next) 'right)]
-                           [parent button-panel]
-                           [callback (λ (_1 _2) (next))]
-                           [enabled #f]))
-  
-  (define pulldown-choices
-    `((,(string-constant stepper-jump-to-beginning)            ,jump-to-beginning)
-      (,(string-constant stepper-jump-to-end)                  ,jump-to-end)
-      (,(string-constant stepper-jump-to-selected)             ,jump-to-selected)
-      (,(string-constant stepper-jump-to-next-application)     ,jump-to-next-application)
-      (,(string-constant stepper-jump-to-previous-application) ,jump-to-prior-application)))
-  
-  (define jump-button (new choice%
-                           [label (string-constant stepper-jump)]
-                           [choices (map first pulldown-choices)]
-                           [parent button-panel]
-                           [callback jump-to]
-                           [enabled #f]))
-  
-  (define canvas
-    (make-object x:stepper-canvas% (send s-frame get-area-container)))
-  
-  ;; counting steps...
+
+  ;; this text box counts the steps for the user
   (define status-text
     (new text%))
-  
+
   (define status-canvas
     (new editor-canvas%
-         [parent button-panel]
+         [parent top-panel]
          [editor status-text]
          [stretchable-width #f]
          [style '(transparent no-border no-hscroll no-vscroll)]
          ;; some way to get the height of a line of text?
          [min-width 100]))
 
+  (define logo-canvas
+    (new (class bitmap-canvas%
+           (super-new [parent top-panel] [bitmap (compiled-bitmap (stepper-logo #:height 32))])
+           (define/override (on-event evt)
+             (when (eq? (send evt get-event-type) 'left-up)
+               (show-about-dialog s-frame))))))
+
   
+  ;; a button-making abstraction
+  (define (stepper-button label bitmap callback)
+      (new switchable-button%
+           [parent button-panel]
+           [label label]
+           [bitmap bitmap]
+           [callback (λ (_1) (callback))]))
+
+  (define beginning-button
+    (stepper-button "E" prev-img jump-to-beginning))
+  (define previous-app-button
+    (stepper-button "A" prev-img jump-to-previous-application))
+  (define previous-button
+    (stepper-button "S" prev-img previous))
+  (define selected-button
+    (stepper-button "SEL" next-img jump-to-selected))
+  (define next-button
+    (stepper-button "S" next-img next))
+  (define next-app-button
+    (stepper-button "A" next-img jump-to-next-application))
+  (define end-button
+    (stepper-button "E" next-img jump-to-end))
+
+  (define all-buttons
+    (list selected-button
+          beginning-button previous-app-button previous-button 
+          end-button       next-app-button     next-button))
+
+  (define canvas
+    (make-object x:stepper-canvas% (send s-frame get-area-container)))
+
   ;; update-view/existing : set an existing step as the one shown in the
   ;; frame
   (define (update-view/existing new-view)
@@ -367,10 +356,8 @@
   (define update-status-bar-semaphore (make-semaphore 1))
   
   (define (enable-all-buttons)
-    (send previous-button enable #t)
-    (send next-button enable #t)
-    (send jump-button enable #t))
-
+    (for ([b (in-list all-buttons)])
+      (send b enable #t)))
   
   (define (print-current-view item evt)
     (send (send canvas get-editor) print))
@@ -509,7 +496,13 @@
   
   s-frame)
 
+;; the left-arrow image
+(define prev-img (compiled-bitmap (step-back-icon #:color run-icon-color
+                                                      #:height (toolbar-icon-height))))
 
+;; the right-arrow-image
+(define next-img (compiled-bitmap (step-icon #:color run-icon-color
+                                             #:height (toolbar-icon-height))))
 
 ;; UTILITY FUNCTIONS:
 
