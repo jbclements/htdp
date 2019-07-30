@@ -133,7 +133,8 @@
   (class (drracket:frame:basics-mixin
           (frame:frame:standard-menus-mixin frame:frame:basic%))
 
-    (init-field drracket-tab)
+    (init-field drracket-tab key-event-handler)
+    
 
     ;; PRINTING-PROC
     ;; I frankly don't think that printing (i.e., to a printer) works
@@ -148,6 +149,10 @@
 
     (define/private (file-menu:print a b) (printing-proc a b))
 
+    ;; punt keystrokes down
+    (define/override (on-subwindow-char receiver key-evt)
+      ;; hack! should let other keystrokes go to default
+      (key-event-handler (send key-evt get-key-code)))
     ;; MENUS
 
     (define/override (edit-menu:between-find-and-preferences edit-menu)

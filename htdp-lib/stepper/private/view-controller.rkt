@@ -247,7 +247,8 @@
   
   ;; jump-to-selected : the action of the jump to selected choice box option
   (define (jump-to-selected)
-    (first-of-specified-kind selected-exp-step?
+    (perform-grotesque-hack)
+    #;(first-of-specified-kind selected-exp-step?
                              (string-constant stepper-no-selected-step)))
   
   ;; jump-to-next-application : the action of the jump to next application
@@ -262,10 +263,16 @@
     (previous-of-specified-kind application-step?
                              (string-constant 
                               stepper-no-earlier-application-step)))
+
+  (define (handle-key-evt key-code)
+    (match key-code
+      ['left (previous)]
+      ['right (next)]
+      [other #f]))
   
   ;; GUI ELEMENTS:
   (define s-frame
-    (make-object stepper-frame% drracket-tab))
+    (make-object stepper-frame% drracket-tab handle-key-evt))
   
   (define top-panel
     (new horizontal-panel% [parent (send s-frame get-area-container)] [horiz-margin 5]
@@ -411,7 +418,28 @@
       [3 (set! runaway-counter 0)
          (set! disable-runaway-counter #t)
          #t]))
+
+  (define (perform-grotesque-hack)
+    (unless (< 3 (length view-history))
+      (message-box "ouch!")))
+
+
+  ;; PART OF GROTESQUE HACK
+  #;(define step-lhs-hash
+    (make-hash))
+  #;(define step-rhs-hash
+    (make-hash))
   
+  #;(Step
+   (new x:stepper-text%
+        [left-side (pull-from-somewhere)]
+        [right-side (pull-from-somewhere)]
+        [show-inexactness? 
+         (send language-level stepper:show-inexactness?)]
+        [print-boolean-long-form? 
+         (send language-level stepper:print-boolean-long-form?)])
+   'user-application
+   (list bogus bogus))
 
   ;; translates a result into a step
   ;; format-result : step-result -> step?
